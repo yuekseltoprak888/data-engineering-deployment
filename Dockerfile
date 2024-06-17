@@ -1,37 +1,31 @@
-# Use the Python 3.8.14-slim base image
+# Use the official Python image from the Docker Hub
 FROM python:3.8.14-slim
 
-# Set build-time argument to suppress interactive prompts during package installation
+# Set environment variables
 ARG DEBIAN_FRONTEND=noninteractive
-
-# Set environment variable to ensure Python output is unbuffered
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
 
-# Install dependencies for Poetry and build tools
+# Install dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        gcc \
-        libpq-dev \
-        build-essential \
-        curl && \
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    gcc && \
     pip install --no-cache-dir poetry && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set the working directory to /server
-WORKDIR /server
+# Set working directory
+WORKDIR /app
 
-# Copy the current directory contents into the container at /server
-COPY . /server
+# Copy the project files
+COPY . /app
 
-# Install the dependencies using Poetry
+# Install Python dependencies
 RUN poetry install --only main
 
-# Expose the PORT variable
-EXPOSE ${PORT}
+# Expose the port
+EXPOSE $PORT
 
-# Set entrypoint to use Poetry
-ENTRYPOINT ["poetry", "run"]
-
-# Set default command to run FastAPI via uvicorn, using the PORT environment variable
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
+# Run the application
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
