@@ -1,31 +1,37 @@
-# Use the official Python image from the Docker Hub
+# Use the Python 3.8.14-slim base image
 FROM python:3.8.14-slim
 
-# Set environment variables
+# Set build-time argument to suppress interactive prompts during package installation
 ARG DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
 
-# Install dependencies
+# Set environment variable to ensure Python output is unbuffered
+ENV PYTHONUNBUFFERED=1
+
+# Install dependencies for Poetry and build tools
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y \
-    build-essential \
-    gcc && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        libpq-dev \
+        build-essential \
+        curl && \
     pip install --no-cache-dir poetry && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
+# Set the working directory to /server
+WORKDIR /server
 
-# Copy the project files
-COPY . /app
+# Copy the current directory contents into the container at /server
+COPY . /server
 
-# Install Python dependencies
+# Install the dependencies using Poetry
 RUN poetry install --only main
 
-# Expose the port
-EXPOSE $PORT
+# Expose the PORT variable
+EXPOSE ${PORT}
 
-# Run the application
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+# Set entrypoint to use Poetry and run the app with the specified PORT
+ENTRYPOINT ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port"]
+
+# Default CMD to pass the PORT environment variable
+CMD ["8000"]
